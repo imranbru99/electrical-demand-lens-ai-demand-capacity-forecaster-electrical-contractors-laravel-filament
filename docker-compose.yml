@@ -1,0 +1,61 @@
+services:
+  app:
+    build: .
+    container_name: electricaldemandlens_app
+    ports:
+      - "8145:8000"
+    environment:
+      APP_NAME: ElectricalDemandLens
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8145
+      APP_KEY: "base64:KHkXsEgGKOhkcSTq1CIhjdF2nkFioJClXJst3jpPzFI="
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: electricaldemandlens
+      DB_USERNAME: electrical
+      DB_PASSWORD: secret
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      REDIS_HOST: redis
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./storage:/var/www/html/storage
+      - ./bootstrap/cache:/var/www/html/bootstrap/cache
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4
+    container_name: electricaldemandlens_mysql
+    environment:
+      MYSQL_DATABASE: electricaldemandlens
+      MYSQL_USER: electrical
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    ports:
+      - "33145:3306"
+    volumes:
+      - electricaldemandlens_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -prootsecret --silent || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 120s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: electricaldemandlens_redis
+    ports:
+      - "63845:6379"
+    restart: unless-stopped
+
+volumes:
+  electricaldemandlens_mysql_data:
